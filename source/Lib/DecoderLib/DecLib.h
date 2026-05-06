@@ -87,6 +87,7 @@ public:
   DecLib();
   ~DecLib() = default;
 
+  void InjectExternalIFrame( void* externalIFrame );
   void create( int numDecThreads, int parserFrameDelay, const UserAllocator& userAllocator, ErrHandlingFlags errHandlingFlags);
   void destroy();
 

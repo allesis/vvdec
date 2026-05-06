@@ -171,6 +171,7 @@ public:
 
   std::string                             m_cErrorString;
   std::string                             m_cAdditionalErrorString;
+  void InjectExternalIFrame( void* externalIFrame );
 
 private:
   int xAddPicture                  ( Picture* pcPic );

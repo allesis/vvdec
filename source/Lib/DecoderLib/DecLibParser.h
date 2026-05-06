@@ -92,6 +92,7 @@ private:
   int m_nonVCLbits                = 0;
 
   Picture* m_pcParsePic           = nullptr;
+  Picture* m_externalIFrame       = nullptr;
   Slice*   m_apcSlicePilot        = nullptr;
 
   DCI*     m_dci                  = nullptr;
@@ -173,6 +174,7 @@ public:
   void resetPictureUnitNals     ()                      { m_pictureUnitNals.clear(); }
 
   const ParameterSetManager& getParameterSetManager() const { return m_parameterSetManager; }
+  void InjectExternalIFrame( void* externalIFrame );
 
 private:
   bool xDecodeSliceHead( InputNALUnit& nalu );
@@ -197,6 +199,7 @@ private:
   void xCheckMixedNalUnit     ( Slice* pcSlice, const InputNALUnit& nalu );
 
   void waitForPicsToFinishParsing( const std::vector<Picture*>& refPics );
+  void copyInjectedFrameToPicture();
 };
 
 }

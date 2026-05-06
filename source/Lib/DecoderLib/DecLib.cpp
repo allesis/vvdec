@@ -773,6 +773,9 @@ void DecLib::resetPictureSeiNalus()
   m_pictureSeiNalus.clear();
 }
 
+
+void DecLib::InjectExternalIFrame( void* externalIFrame ) { m_decLibParser.InjectExternalIFrame(externalIFrame); }
+
 void DecLib::checkAPSInPictureUnit()
 {
   bool firstVCLFound = false;

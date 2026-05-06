@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "vvdec/vvdec.h"
 #include "vvdecimpl.h"
 
+#include <cstring>
 #include <stdio.h>
 
 #include "vvdec/version.h"
@@ -287,6 +288,11 @@ VVDEC_DECL int vvdec_set_logging_callback(vvdecDecoder *dec,
 
   d->setLoggingCallback(callback);
   return VVDEC_OK;
+}
+
+VVDEC_DECL void vvdec_inject_external_iframe( vvdecDecoder *dec, void* externalIFrame ) {
+  auto d = (vvdec::VVDecImpl *)dec;
+				d->InjectExternalIFrame(externalIFrame); 
 }
 
 VVDEC_DECL int vvdec_decode(vvdecDecoder *dec, vvdecAccessUnit *accessUnit,

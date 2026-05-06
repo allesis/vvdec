@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "NALread.h"
 
 #include "CommonLib/dtrace_next.h"
+#include "vvdec/vvdec.h"
 
 #include "UnitTools.h"
 #include "Utilities/ThreadPool.h"
@@ -792,20 +793,30 @@ bool DecLibParser::xDecodeSliceMain( InputNALUnit& nalu )
       CHECK( isCurrLayerInOls && !isRefLayerInOls, "When VCL NAl unit in layer A refers to PPS in layer B, all OLS that contains layer A shall also contains layer B" );
     }
   }
+				if( pcSlice->isIntra() && m_externalIFrame )  
+				{  
+					copyInjectedFrameToPicture();  
+						m_pcParsePic->setDecodingOrderNumber( m_decodingOrderCounter );
+						m_decodingOrderCounter++;
+						
+					m_pcParsePic->progress = Picture::parsed;  
+					m_pcParsePic->parseDone.unlock();  
 
-  if( m_bFirstSliceInPicture )
-  {
-    m_pcParsePic->setDecodingOrderNumber( m_decodingOrderCounter );
-    m_decodingOrderCounter++;
+				} else {
+					if( m_bFirstSliceInPicture )
+					{
+						m_pcParsePic->setDecodingOrderNumber( m_decodingOrderCounter );
+						m_decodingOrderCounter++;
 
-    pcSlice->getPic()->subPictures.clear();
-    pcSlice->getPic()->sliceSubpicIdx.clear();
+						pcSlice->getPic()->subPictures.clear();
+						pcSlice->getPic()->sliceSubpicIdx.clear();
 
-    for( int subPicIdx = 0; subPicIdx < pcSlice->getSPS()->getNumSubPics(); subPicIdx++ )
-    {
-      pcSlice->getPic()->subPictures.push_back( pcSlice->getPPS()->getSubPic( subPicIdx ) );
-    }
-  }
+						for( int subPicIdx = 0; subPicIdx < pcSlice->getSPS()->getNumSubPics(); subPicIdx++ )
+						{
+							pcSlice->getPic()->subPictures.push_back( pcSlice->getPPS()->getSubPic( subPicIdx ) );
+						}
+					}
+	}
 
   pcSlice->getPic()->sliceSubpicIdx.push_back(pcSlice->getPPS()->getSubPicIdxFromSubPicId(pcSlice->getSliceSubPicId()));
 
@@ -1828,6 +1839,36 @@ void DecLibParser::waitForPicsToFinishParsing( const std::vector<Picture*>& refP
       pic->waitForAllTasks();
     }
   }
+}
+
+void DecLibParser::InjectExternalIFrame(void* externalIFrame) {
+	m_externalIFrame = (vvdecFrame*)externalIFrame;
+	Picture* pic = new Picture();  
+	pic->create(chromaFormat, Size(width, height), maxCUSize, margin, layerId, userAllocator);
+
+	PelUnitBuf& reconBuf = pic->m_bufs[PIC_RECONSTRUCTION];  
+	for (int comp = 0; comp < externalIFrame.numPlanes; comp++) {  
+	    const PelBuf dest = reconBuf.get(ComponentID(comp));  
+	    const unsigned char* src = externalIFrame.planes[comp].ptr;  
+	      
+	    // Copy with stride handling  
+	    for (int y = 0; y < dest.height; y++) {  
+		memcpy(dest.buf + y * dest.stride,   
+		       src + y * externalIFrame.planes[comp].stride,  
+		       dest.width * sizeof(Pel));  
+	    }  
+	}
+
+	pic->poc = externalIFrame.picAttributes->poc;  
+	pic->progress = Picture::parsed;
+	pic->reconDone.unlock();  
+	pic->parseDone.unlock();
+}
+
+void DecLibParser::copyInjectedFrameToPicture() {
+				// Get the injected frame and reset the reference
+				m_pcParsePic = m_externalIFrame;
+				m_externalIFrame = nullptr;
 }
 
 }   // namespace vvdec
